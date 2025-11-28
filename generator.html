@@ -1,0 +1,748 @@
+[<title="准星系统设计工具-添加中心偏移滑块和对数比例">]
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>准星系统设计工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .main-content {
+            display: flex;
+            gap: 20px;
+        }
+        .control-panel {
+            flex: 1;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .canvas-container {
+            background: #333;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        canvas {
+            background: #000;
+            border-radius: 4px;
+        }
+        .element-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .element-controls h3 {
+            margin-top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .control-group {
+            margin-bottom: 10px;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .control-row input, .control-row select {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            width: 100px;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            width: auto;
+        }
+        .exclude-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .exclude-input {
+            display: flex;
+            align-items: center;
+        }
+        .exclude-input input[type="checkbox"] {
+            margin-right: 3px;
+        }
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .color-preview {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        .hsv-inputs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .hsv-inputs > div {
+            flex: 1;
+        }
+        .hsv-inputs-second {
+            display: flex;
+            gap: 10px;
+        }
+        .hsv-inputs-second > div {
+            flex: 1;
+        }
+        .dimension-row {
+            display: flex;
+            gap: 10px;
+        }
+        .dimension-row > div {
+            flex: 1;
+        }
+        .canvas-size-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .canvas-size-controls > div {
+            flex: 1;
+        }
+        .canvas-size-controls label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .canvas-size-controls input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>准星系统设计工具</h1>
+            <p>创建自定义准星，支持多种形状和配置</p>
+        </div>
+        <div class="main-content">
+            <div class="control-panel">
+                <h2>准星元素配置</h2>
+                <div id="elements-container">
+                    <!-- 元素控制将通过JavaScript动态添加 -->
+                </div>
+                <button id="add-element" class="btn btn-primary">添加元素</button>
+                <div class="actions">
+                    <button id="preview-btn" class="btn btn-success">预览</button>
+                    <button id="download-btn" class="btn btn-primary">下载PNG</button>
+                </div>
+            </div>
+            <div class="preview-panel">
+                <div class="canvas-container">
+                    <canvas id="reticle-canvas" width="400" height="400"></canvas>
+                </div>
+                <div class="canvas-size-controls">
+                    <div>
+                        <label for="canvas-width">宽度:</label>
+                        <input type="number" id="canvas-width" min="100" max="2000" value="400">
+                    </div>
+                    <div>
+                        <label for="canvas-height">高度:</label>
+                        <input type="number" id="canvas-height" min="100" max="2000" value="400">
+                    </div>
+                </div>
+                <p>准星预览区域</p>
+            </div>
+        </div>
+    </div>
+  
+    <script>
+        // 准星元素类
+        class ReticleElement {
+            constructor() {
+                this.shape = "RECTANGLE";
+                this.count = 4;
+                this.exclude = [];
+                this.phaseOffset = 0;
+                this.dimensions = { length: 5, width: 30 };
+                this.distanceFromCenter = 25;
+                this.color = { h: 0, s: 1, v: 1, a: 1 }; // HSVa颜色空间
+                this.offset = { x: 0, y: 0 };
+            }
+        }
+  
+        // 准星类
+        class Reticle {
+            constructor() {
+                this.elements = [new ReticleElement()];
+            }
+            addElement() {
+                this.elements.push(new ReticleElement());
+            }
+            removeElement(index) {
+                if (this.elements.length > 1) {
+                    this.elements.splice(index, 1);
+                }
+            }
+        }
+  
+        // HSV转RGB函数
+        function hsvToRgb(h, s, v) {
+            let r, g, b;
+            const i = Math.floor(h * 6);
+            const f = h * 6 - i;
+            const p = v * (1 - s);
+            const q = v * (1 - f * s);
+            const t = v * (1 - (1 - f) * s);
+            switch (i % 6) {
+                case 0: r = v, g = t, b = p; break;
+                case 1: r = q, g = v, b = p; break;
+                case 2: r = p, g = v, b = t; break;
+                case 3: r = p, g = q, b = v; break;
+                case 4: r = t, g = p, b = v; break;
+                case 5: r = v, g = p, b = q; break;
+            }
+            return {
+                r: Math.round(r * 255),
+                g: Math.round(g * 255),
+                b: Math.round(b * 255)
+            };
+        }
+  
+        // RGB转CSS颜色字符串
+        function rgbToCss(r, g, b, a) {
+            return `rgba(${r}, ${g}, ${b}, ${a})`;
+        }
+  
+        // HSVa转CSS颜色字符串
+        function hsvaToCss(h, s, v, a) {
+            const rgb = hsvToRgb(h, s, v);
+            return rgbToCss(rgb.r, rgb.g, rgb.b, a);
+        }
+  
+        // 对数缩放函数
+        function logScale(value, min, max, logMin, logMax) {
+            // 将值从线性范围转换为对数范围
+            if (value <= min) return logMin;
+            if (value >= max) return logMax;
+            const normalized = (value - min) / (max - min);
+            return Math.pow(10, logMin + normalized * (logMax - logMin));
+        }
+  
+        // 反向对数缩放函数
+        function inverseLogScale(value, min, max, logMin, logMax) {
+            // 将值从对数范围转换回线性范围
+            if (value <= Math.pow(10, logMin)) return min;
+            if (value >= Math.pow(10, logMax)) return max;
+            const logValue = Math.log10(value);
+            const normalized = (logValue - logMin) / (logMax - logMin);
+            return min + normalized * (max - min);
+        }
+  
+        // 绘制准星元素
+        function drawReticleElement(ctx, element, centerX, centerY) {
+            const { shape, count, exclude, phaseOffset, dimensions, distanceFromCenter, color, offset } = element;
+            const { length, width } = dimensions;
+            // 应用全局偏移
+            const actualCenterX = centerX + offset.x;
+            const actualCenterY = centerY + offset.y;
+            const angleStep = (2 * Math.PI) / count;
+            const phaseRad = phaseOffset * Math.PI / 180;
+            // 创建排除集合
+            const excludeSet = new Set(exclude);
+            for (let i = 0; i < count; i++) {
+                if (excludeSet.has(i)) continue;
+                const angle = i * angleStep + phaseRad;
+                const x = actualCenterX + distanceFromCenter * Math.cos(angle);
+                const y = actualCenterY + distanceFromCenter * Math.sin(angle);
+                // 保存当前状态
+                ctx.save();
+                // 移动到绘制位置并旋转
+                ctx.translate(x, y);
+                // 三角形需要额外旋转180度使其顶点朝向中心
+                if (shape === "TRIANGLE") {
+                    ctx.rotate(angle - Math.PI/2);
+                } else {
+                    ctx.rotate(angle);
+                }
+                // 设置颜色
+                const cssColor = hsvaToCss(color.h, color.s, color.v, color.a);
+                ctx.fillStyle = cssColor;
+                ctx.strokeStyle = cssColor;
+                ctx.lineWidth = 1;
+                // 根据形状绘制
+                switch (shape) {
+                    case "RECTANGLE":
+                        ctx.fillRect(-width/2, -length/2, width, length);
+                        break;
+                    case "TRIANGLE":
+                        ctx.beginPath();
+                        ctx.moveTo(0, -length/2); // 顶点
+                        ctx.lineTo(-width/2, length/2); // 左下
+                        ctx.lineTo(width/2, length/2); // 右下
+                        ctx.closePath();
+                        ctx.fill();
+                        break;
+                    case "ELLIPSE":
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, width/2, length/2, 0, 0, 2 * Math.PI);
+                        ctx.fill();
+                        break;
+                }
+                // 恢复状态
+                ctx.restore();
+            }
+        }
+  
+        // 渲染整个准星
+        function renderReticle(canvas, reticle) {
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 如果没有元素，直接返回
+            if (reticle.elements.length === 0) {
+                return;
+            }
+            // 绘制每个元素
+            for (const element of reticle.elements) {
+                drawReticleElement(ctx, element, centerX, centerY);
+            }
+        }
+  
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('reticle-canvas');
+            const elementsContainer = document.getElementById('elements-container');
+            const addElementBtn = document.getElementById('add-element');
+            const previewBtn = document.getElementById('preview-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const canvasWidthInput = document.getElementById('canvas-width');
+            const canvasHeightInput = document.getElementById('canvas-height');
+            
+            const reticle = new Reticle();
+            
+            // 设置画布大小
+            function setCanvasSize(width, height) {
+                canvas.width = width;
+                canvas.height = height;
+                renderReticle(canvas, reticle);
+            }
+            
+            // 画布大小控制事件
+            canvasWidthInput.addEventListener('change', (e) => {
+                const width = Math.max(100, Math.min(2000, parseInt(e.target.value) || 400));
+                e.target.value = width;
+                setCanvasSize(width, canvas.height);
+            });
+            
+            canvasHeightInput.addEventListener('change', (e) => {
+                const height = Math.max(100, Math.min(2000, parseInt(e.target.value) || 400));
+                e.target.value = height;
+                setCanvasSize(canvas.width, height);
+            });
+            
+            // 更新排除复选框
+            function updateExcludeCheckboxes(elementIndex) {
+                const excludeDiv = document.querySelector(`#element-${elementIndex} .exclude-inputs`);
+                if (!excludeDiv) return;
+                const count = parseInt(document.querySelector(`#element-${elementIndex}-count`).value) || 1;
+                const exclude = reticle.elements[elementIndex].exclude;
+                excludeDiv.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const checkbox = document.createElement('label');
+                    checkbox.className = 'exclude-input';
+                    checkbox.innerHTML = `
+                        <input type="checkbox" id="exclude-${elementIndex}-${i}" ${exclude.includes(i) ? 'checked' : ''}>
+                        ${i}
+                    `;
+                    excludeDiv.appendChild(checkbox);
+                    // 添加事件监听器
+                    checkbox.querySelector('input').addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            if (!reticle.elements[elementIndex].exclude.includes(i)) {
+                                reticle.elements[elementIndex].exclude.push(i);
+                            }
+                        } else {
+                            reticle.elements[elementIndex].exclude =
+                                reticle.elements[elementIndex].exclude.filter(idx => idx !== i);
+                        }
+                        reticle.elements[elementIndex].exclude.sort((a, b) => a - b);
+                        renderReticle(canvas, reticle); // 立即更新预览
+                    });
+                }
+            }
+            // 创建元素控制UI
+            function createElementControls(index) {
+                const element = reticle.elements[index];
+                const elementDiv = document.createElement('div');
+                elementDiv.className = 'element-controls';
+                elementDiv.id = `element-${index}`;
+                elementDiv.innerHTML = `
+                    <h3>
+                        元素 ${index + 1}
+                        ${reticle.elements.length > 1 ? `<button class="btn btn-danger remove-element" data-index="${index}">删除</button>` : ''}
+                    </h3>
+                    <div class="control-group">
+                        <label>形状</label>
+                        <select id="element-${index}-shape">
+                            <option value="RECTANGLE" ${element.shape === 'RECTANGLE' ? 'selected' : ''}>长方形</option>
+                            <option value="TRIANGLE" ${element.shape === 'TRIANGLE' ? 'selected' : ''}>三角形</option>
+                            <option value="ELLIPSE" ${element.shape === 'ELLIPSE' ? 'selected' : ''}>椭圆形</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>数量 (Count)</label>
+                        <input type="number" id="element-${index}-count" min="1" value="${element.count}">
+                    </div>
+                    <div class="control-group">
+                        <label>排除槽位 (Exclude)</label>
+                        <div class="exclude-inputs"></div>
+                    </div>
+                    <div class="control-group">
+                        <label>相位偏移 (度)</label>
+                        <div class="control-row">
+                            <input type="range" id="element-${index}-phase-slider" min="0" max="360" step="0.1" value="${element.phaseOffset}">
+                            <input type="number" id="element-${index}-phase" step="0.1" value="${element.phaseOffset}">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>尺寸</label>
+                        <div class="dimension-row">
+                            <div>
+                                <label>长度</label>
+                                <div class="control-row">
+                                    <input type="range" id="element-${index}-length-slider" min="0" max="100" step="0.1" value="${inverseLogScale(element.dimensions.length, 0, 100, 0, 3)}">
+                                    <input type="number" id="element-${index}-length" step="0.1" value="${element.dimensions.length}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dimension-row">
+                            <div>
+                                <label>宽度</label>
+                                <div class="control-row">
+                                    <input type="range" id="element-${index}-width-slider" min="0" max="100" step="0.1" value="${inverseLogScale(element.dimensions.width, 0, 100, 0, 3)}">
+                                    <input type="number" id="element-${index}-width" step="0.1" value="${element.dimensions.width}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>距离中心</label>
+                        <div class="control-row">
+                            <input type="range" id="element-${index}-distance-slider" min="0" max="100" step="0.1" value="${inverseLogScale(element.distanceFromCenter, 0, 100, 0, 3)}">
+                            <input type="number" id="element-${index}-distance" step="0.1" value="${element.distanceFromCenter}">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>颜色 (HSVA)</label>
+                        <div class="hsv-inputs">
+                            <div>
+                                <label>H: <span id="element-${index}-h-value">${element.color.h.toFixed(2)}</span></label>
+                                <input type="range" id="element-${index}-h" min="0" max="1" step="0.01" value="${element.color.h}">
+                            </div>
+                            <div>
+                                <label>S: <span id="element-${index}-s-value">${element.color.s.toFixed(2)}</span></label>
+                                <input type="range" id="element-${index}-s" min="0" max="1" step="0.01" value="${element.color.s}">
+                            </div>
+                        </div>
+                        <div class="hsv-inputs-second">
+                            <div>
+                                <label>V: <span id="element-${index}-v-value">${element.color.v.toFixed(2)}</span></label>
+                                <input type="range" id="element-${index}-v" min="0" max="1" step="0.01" value="${element.color.v}">
+                            </div>
+                            <div>
+                                <label>A: <span id="element-${index}-a-value">${element.color.a.toFixed(2)}</span></label>
+                                <input type="range" id="element-${index}-a" min="0" max="1" step="0.01" value="${element.color.a}">
+                            </div>
+                        </div>
+                        <div style="margin-top: 5px;">
+                            预览: <div class="color-preview" id="element-${index}-color-preview"
+                                style="background-color: ${hsvaToCss(element.color.h, element.color.s, element.color.v, element.color.a)}"></div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label>中心偏移</label>
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label>X</label>
+                                <div class="control-row">
+                                    <input type="range" id="element-${index}-offset-x-slider" min="-200" max="200" step="0.1" value="${element.offset.x}">
+                                    <input type="number" id="element-${index}-offset-x" step="0.1" value="${element.offset.x}">
+                                </div>
+                            </div>
+                            <div style="flex: 1;">
+                                <label>Y</label>
+                                <div class="control-row">
+                                    <input type="range" id="element-${index}-offset-y-slider" min="-200" max="200" step="0.1" value="${element.offset.y}">
+                                    <input type="number" id="element-${index}-offset-y" step="0.1" value="${element.offset.y}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                elementsContainer.appendChild(elementDiv);
+                // 添加事件监听器
+                document.getElementById(`element-${index}-shape`).addEventListener('change', (e) => {
+                    reticle.elements[index].shape = e.target.value;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                document.getElementById(`element-${index}-count`).addEventListener('change', (e) => {
+                    reticle.elements[index].count = parseInt(e.target.value) || 1;
+                    updateExcludeCheckboxes(index);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 相位偏移的滑块和输入框联动
+                const phaseSlider = document.getElementById(`element-${index}-phase-slider`);
+                const phaseInput = document.getElementById(`element-${index}-phase`);
+                phaseSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].phaseOffset = value;
+                    phaseInput.value = value;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                phaseInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].phaseOffset = value;
+                    phaseSlider.value = Math.min(360, Math.max(0, value));
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 长度的滑块和输入框联动
+                const lengthSlider = document.getElementById(`element-${index}-length-slider`);
+                const lengthInput = document.getElementById(`element-${index}-length`);
+                lengthSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].dimensions.length = logScale(value, 0, 100, 0, 3);
+                    lengthInput.value = reticle.elements[index].dimensions.length;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                lengthInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].dimensions.length = value;
+                    lengthSlider.value = inverseLogScale(value, 0, 100, 0, 3);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 宽度的滑块和输入框联动
+                const widthSlider = document.getElementById(`element-${index}-width-slider`);
+                const widthInput = document.getElementById(`element-${index}-width`);
+                widthSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].dimensions.width = logScale(value, 0, 100, 0, 3);
+                    widthInput.value = reticle.elements[index].dimensions.width;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                widthInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].dimensions.width = value;
+                    widthSlider.value = inverseLogScale(value, 0, 100, 0, 3);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 距离中心的滑块和输入框联动
+                const distanceSlider = document.getElementById(`element-${index}-distance-slider`);
+                const distanceInput = document.getElementById(`element-${index}-distance`);
+                distanceSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].distanceFromCenter = logScale(value, 0, 100, 0, 3);
+                    distanceInput.value = reticle.elements[index].distanceFromCenter;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                distanceInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].distanceFromCenter = value;
+                    distanceSlider.value = inverseLogScale(value, 0, 100, 0, 3);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 颜色控制事件监听器
+                const hInput = document.getElementById(`element-${index}-h`);
+                const sInput = document.getElementById(`element-${index}-s`);
+                const vInput = document.getElementById(`element-${index}-v`);
+                const aInput = document.getElementById(`element-${index}-a`);
+                const hValue = document.getElementById(`element-${index}-h-value`);
+                const sValue = document.getElementById(`element-${index}-s-value`);
+                const vValue = document.getElementById(`element-${index}-v-value`);
+                const aValue = document.getElementById(`element-${index}-a-value`);
+                const colorPreview = document.getElementById(`element-${index}-color-preview`);
+                hInput.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].color.h = value;
+                    hValue.textContent = value.toFixed(2);
+                    updateColorPreview(index);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                sInput.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].color.s = value;
+                    sValue.textContent = value.toFixed(2);
+                    updateColorPreview(index);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                vInput.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].color.v = value;
+                    vValue.textContent = value.toFixed(2);
+                    updateColorPreview(index);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                aInput.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].color.a = value;
+                    aValue.textContent = value.toFixed(2);
+                    updateColorPreview(index);
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                function updateColorPreview(idx) {
+                    const color = reticle.elements[idx].color;
+                    colorPreview.style.backgroundColor = hsvaToCss(color.h, color.s, color.v, color.a);
+                }
+                // 中心偏移X的滑块和输入框联动
+                const offsetXSlider = document.getElementById(`element-${index}-offset-x-slider`);
+                const offsetXInput = document.getElementById(`element-${index}-offset-x`);
+                offsetXSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].offset.x = value;
+                    offsetXInput.value = value;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                offsetXInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].offset.x = value;
+                    offsetXSlider.value = Math.min(200, Math.max(-200, value));
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 中心偏移Y的滑块和输入框联动
+                const offsetYSlider = document.getElementById(`element-${index}-offset-y-slider`);
+                const offsetYInput = document.getElementById(`element-${index}-offset-y`);
+                offsetYSlider.addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].offset.y = value;
+                    offsetYInput.value = value;
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                offsetYInput.addEventListener('change', (e) => {
+                    const value = parseFloat(e.target.value);
+                    reticle.elements[index].offset.y = value;
+                    offsetYSlider.value = Math.min(200, Math.max(-200, value));
+                    renderReticle(canvas, reticle); // 立即更新预览
+                });
+                // 初始化排除复选框
+                updateExcludeCheckboxes(index);
+            }
+            // 更新所有元素控制UI
+            function updateAllElementControls() {
+                elementsContainer.innerHTML = '';
+                for (let i = 0; i < reticle.elements.length; i++) {
+                    createElementControls(i);
+                }
+                // 重新添加删除按钮事件监听器
+                document.querySelectorAll('.remove-element').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const index = parseInt(e.target.getAttribute('data-index'));
+                        reticle.removeElement(index);
+                        updateAllElementControls();
+                        renderReticle(canvas, reticle);
+                    });
+                });
+            }
+            // 添加元素按钮事件
+            addElementBtn.addEventListener('click', () => {
+                reticle.addElement();
+                updateAllElementControls();
+                renderReticle(canvas, reticle);
+            });
+            // 预览按钮事件
+            previewBtn.addEventListener('click', () => {
+                // 更新所有值
+                for (let i = 0; i < reticle.elements.length; i++) {
+                    reticle.elements[i].shape = document.getElementById(`element-${i}-shape`).value;
+                    reticle.elements[i].count = parseInt(document.getElementById(`element-${i}-count`).value) || 1;
+                    // 更新相位偏移
+                    const phaseInput = document.getElementById(`element-${i}-phase`);
+                    reticle.elements[i].phaseOffset = parseFloat(phaseInput.value) || 0;
+                    // 更新尺寸
+                    const lengthInput = document.getElementById(`element-${i}-length`);
+                    reticle.elements[i].dimensions.length = parseFloat(lengthInput.value) || 0;
+                    const widthInput = document.getElementById(`element-${i}-width`);
+                    reticle.elements[i].dimensions.width = parseFloat(widthInput.value) || 0;
+                    // 更新距离中心
+                    const distanceInput = document.getElementById(`element-${i}-distance`);
+                    reticle.elements[i].distanceFromCenter = parseFloat(distanceInput.value) || 0;
+                    reticle.elements[i].offset.x = parseFloat(document.getElementById(`element-${i}-offset-x`).value) || 0;
+                    reticle.elements[i].offset.y = parseFloat(document.getElementById(`element-${i}-offset-y`).value) || 0;
+                }
+                renderReticle(canvas, reticle);
+            });
+            // 下载按钮事件
+            downloadBtn.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = 'reticle.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            // 初始化UI
+            updateAllElementControls();
+            renderReticle(canvas, reticle);
+        });
+    </script>
+</body>
+</html>
